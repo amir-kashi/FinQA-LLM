@@ -1,0 +1,14 @@
+credentials:
+  usernames:
+    developer:
+      email: amirtkashi@gmail.com
+      name: Amir Kashi
+      password: '$2b$12$EkoaVYusy6BYBYWoDtqRG.b.ykkNjVtUF4T2HM4.GRUtBSXbUHNSq'
+    tomoro:
+      email: info@tomoro.ai
+      name: Tomoro AI
+      password: '$2b$12$KS1QLEKaWvoo//KiLv8jUuK99aMDRKlyfwi193gzKMtrVnMol6hI.'
+cookie:
+  expiry_days: 30
+  key: FINQA_LLM
+  name: finqa-llm
