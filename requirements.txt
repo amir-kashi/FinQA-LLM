@@ -1,3 +1,10 @@
+langchain
+langchain-core
+langchain-community
+langchain-experimental
+langchain-openai
+numexpr
 pandas
+python-dotenv
 streamlit
 streamlit-authenticator

@@ -1,10 +1,13 @@
+# %% Imports
 import json
 import pandas as pd
 import random
 import streamlit as st
 import streamlit_authenticator as stauth
 import yaml
+from dotenv import load_dotenv
 from yaml.loader import SafeLoader
+from helpers.helper import FinQA
 
 # Site Header
 st.markdown(
@@ -47,40 +50,49 @@ def load_data():
     return data
 
 
-# %% Load (Pre-processed) Data
-data = load_data()
-
 # %% Main App Body
 if st.session_state["authentication_status"]:
 
-    # %% Sidebar
+    # %% Initialize the app
+    total_data = 3965
+    if "random_idx" not in st.session_state:
+        st.session_state["random_idx"] = random.randint(0, total_data - 1)
+
+    # %% User Settings in Sidebar
     st.sidebar.header("User Settings")
     st.sidebar.markdown("""---""")
+
     # 1. Show random data
-    total_data = len(data)
-    random_idx = random.randint(0, total_data - 1)
+    if st.sidebar.button("Randomize Data"):
+        st.session_state["random_idx"] = random.randint(0, total_data - 1)
+    random_idx = st.session_state["random_idx"]  # 1069 3209
     st.sidebar.markdown(
-        f"here are **{total_data}** data points. Showing data for index **{random_idx}**"
+        f"There are **{total_data}** data points. Showing data for index: **{random_idx}**"
     )
-    st.sidebar.button("Randomize Data")
+
     # 2. Model Selection
     gpt_model = st.sidebar.selectbox(
         options=["gpt-4o-mini", "gpt-3.5-turbo"], label="GPT Model"
     )
 
+    # %% Load (Pre-processed) Data and environment variables
+    data = load_data()
+    # Load the .env file
+    load_dotenv()
+
     # %% Tabs
     (
-        tab_data_prevview,
-        tab_llm_output,
+        tab_sample_review,
+        tab_accuracy,
     ) = st.tabs(
         [
-            "Data Preview",
-            "LLM Output",
+            "Sample Review",
+            "Accuracy Report",
         ]
     )
 
-    with tab_data_prevview:
-        # dict_keys(['id', 'pre_text', 'post_text', 'filename', 'table_ori', 'table', 'annotation', 'question', 'answer'])
+    with tab_sample_review:
+        # Show Sample Data
         st.markdown(f"**ID**: {data[random_idx]['id']}")
         st.markdown(f"**Filename**: {data[random_idx]['filename']}")
         with st.expander("**Pre Text**"):
@@ -105,5 +117,17 @@ if st.session_state["authentication_status"]:
         st.markdown(f"**Question**:\n\n{data[random_idx]['question']}")
         st.markdown(f"**Answer**:\n\n {data[random_idx]['answer']}")
 
-    with tab_llm_output:
-        pass
+        # Run the model and Show LLM Output
+        if st.button("Run LLM"):
+            with st.spinner("Running LLM..."):
+                try:
+                    fin_qa = FinQA(gpt_model)
+                    answer, responder = fin_qa.get_answer(
+                        pre_text=" ".join(data[random_idx]["pre_text"]),
+                        table=data[random_idx]["table"],
+                        post_text=" ".join(data[random_idx]["post_text"]),
+                        question=data[random_idx]["question"],
+                    )
+                    st.markdown(f"**{responder}**:\n\n {answer}")
+                except Exception as e:
+                    st.error(f"LLM not able to geenrate output. Error: {e}")
