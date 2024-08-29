@@ -259,3 +259,9 @@ if st.session_state["authentication_status"]:
                 bargap=0.15,  # Gap between bars of adjacent location coordinates.
             )
             st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+
+        # Accuracy report
+        with open("data/accuracy_report.md", "r") as f:
+            accuracy_report = f.read()
+            with st.expander("Show Accuracy Report"):
+                st.markdown(accuracy_report)
