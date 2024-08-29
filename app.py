@@ -53,29 +53,8 @@ def load_data():
 # %% Main App Body
 if st.session_state["authentication_status"]:
 
-    # %% Initialize the app
-    total_data = 3965
-    if "random_idx" not in st.session_state:
-        st.session_state["random_idx"] = random.randint(0, total_data - 1)
-
-    # %% User Settings in Sidebar
-    st.sidebar.header("User Settings")
-    st.sidebar.markdown("""---""")
-
-    # 1. Show random data
-    if st.sidebar.button("Randomize Data"):
-        st.session_state["random_idx"] = random.randint(0, total_data - 1)
-    random_idx = st.session_state["random_idx"]  # 1069 3209
-    st.sidebar.markdown(
-        f"There are **{total_data}** data points. Showing data for index: **{random_idx}**"
-    )
-
-    # 2. Model Selection
-    gpt_model = st.sidebar.selectbox(
-        options=["gpt-4o-mini", "gpt-3.5-turbo"], label="GPT Model"
-    )
-
-    # %% Load (Pre-processed) Data and environment variables
+    # %% Initialise
+    # Load (Pre-processed) Data
     data = load_data()
     # Load the .env file
     load_dotenv()
@@ -92,7 +71,26 @@ if st.session_state["authentication_status"]:
     )
 
     with tab_sample_review:
+        st.markdown(
+            "Welcome to the [ConvFinQA](https://github.com/czyssrs/ConvFinQA) data "
+            "preview. The data has been slightly preprocessed for better usability, "
+            "and in this tab, you can explore samples of the data.\n\n"
+            "Use the **Randomize Data** button to view a random sample, including "
+            "its content along with the corresponding question and answer.\n\n"
+        )
+        # select a random index
+        total_data = 3965
+        if "random_idx" not in st.session_state:
+            st.session_state["random_idx"] = random.randint(0, total_data - 1)
+        if st.button("Randomize Data"):
+            st.session_state["random_idx"] = random.randint(0, total_data - 1)
+        random_idx = st.session_state["random_idx"]
+
         # Show Sample Data
+        st.markdown("---\n\n## Sample Data")
+        st.markdown(
+            f"There are **{total_data}** data points. Showing data for index: **{random_idx}**"
+        )
         st.markdown(f"**ID**: {data[random_idx]['id']}")
         st.markdown(f"**Filename**: {data[random_idx]['filename']}")
         with st.expander("**Pre Text**"):
@@ -118,6 +116,15 @@ if st.session_state["authentication_status"]:
         st.markdown(f"**Answer**:\n\n {data[random_idx]['answer']}")
 
         # Run the model and Show LLM Output
+        st.markdown(
+            "---\n\n## Run Language Model\n\n"
+            "To see the output of the model for the above question, click "
+            "**Run LLM** to generate a result from the language model."
+        )
+        # Model Selection
+        gpt_model = st.selectbox(
+            options=["gpt-4o-mini", "gpt-3.5-turbo"], label="GPT Model"
+        )
         if st.button("Run LLM"):
             with st.spinner("Running LLM..."):
                 try:
@@ -131,3 +138,6 @@ if st.session_state["authentication_status"]:
                     st.markdown(f"**{responder}**:\n\n {answer}")
                 except Exception as e:
                     st.error(f"LLM not able to geenrate output. Error: {e}")
+
+    with tab_accuracy:
+        pass
