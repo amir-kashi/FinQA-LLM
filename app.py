@@ -1,6 +1,7 @@
 # %% Imports
 import json
 import pandas as pd
+import plotly.express as px
 import random
 import streamlit as st
 import streamlit_authenticator as stauth
@@ -43,11 +44,17 @@ elif st.session_state["authentication_status"] == None:
 # %% Functions
 
 
-@st.cache_data(ttl=10, show_spinner=True)
+@st.cache_data(ttl=600, show_spinner=True)
 def load_data():
     with open("data/extracted_data.json", "r") as f:
         data = json.load(f)
     return data
+
+
+@st.cache_data(ttl=600, show_spinner=True)
+def load_accuracy_df():
+    df_with_score = pd.read_csv("data/df_with_score.csv", index_col=False)
+    return df_with_score
 
 
 # %% Main App Body
@@ -56,6 +63,8 @@ if st.session_state["authentication_status"]:
     # %% Initialise
     # Load (Pre-processed) Data
     data = load_data()
+    # Load Accuracy Data
+    df_with_score = load_accuracy_df()
     # Load the .env file
     load_dotenv()
 
@@ -140,4 +149,105 @@ if st.session_state["authentication_status"]:
                     st.error(f"LLM not able to geenrate output. Error: {e}")
 
     with tab_accuracy:
-        pass
+        st.markdown(
+            "Explore the accuracy of the model by applying filters to the data. "
+            "The number of remaining samples and the bar chart will update "
+            "dynamically based on your selections."
+        )
+
+        # Create 2 columns
+        col1, col2 = st.columns([1, 1], gap="small")
+
+        with col1:  # Settings
+            st.markdown(
+                "### Filter Data\n\nApply filters to refine the dataset and see "
+                "how the accuracy changes. The bar chart on the right will "
+                "update to reflect your filtered data."
+            )
+
+            filter_no_answer = st.checkbox("Filter samples with **No Answer**")
+            filter_time_out = st.checkbox("Filter cases where the LLM was Time Out")
+            filter_no_context = st.checkbox("Filter cases where No Context was found")
+
+            # Filter Data
+            filtered_df = df_with_score.copy()
+            if filter_no_answer:
+                filtered_df = filtered_df.dropna(subset=["answer"])
+            if filter_time_out:
+                filtered_df = filtered_df[
+                    filtered_df["llm_answer"]
+                    != "Agent stopped due to iteration limit or time limit."
+                ]
+            if filter_no_context:
+                filtered_df = filtered_df[
+                    filtered_df["llm_answer"] != "Not Enough Context"
+                ]
+            st.markdown(
+                f"**Filtered Data**: {len(filtered_df)} out of {len(df_with_score)}"
+            )
+
+            # Group by Responder and Score
+            df_grouped = (
+                filtered_df.groupby(["responder", "score"])
+                .size()
+                .reset_index(name="count")
+            )
+
+            # Accuracy results
+            accuracy_agent = (
+                df_grouped[
+                    (df_grouped["responder"] == "AGENT RESPONSE")
+                    & (df_grouped["score"] == True)
+                ]["count"].sum()
+                / df_grouped[(df_grouped["responder"] == "AGENT RESPONSE")][
+                    "count"
+                ].sum()
+            ) * 100
+
+            accuracy_llm = (
+                df_grouped[
+                    (df_grouped["responder"] == "LLM RESPONSE")
+                    & (df_grouped["score"] == True)
+                ]["count"].sum()
+                / df_grouped[(df_grouped["responder"] == "LLM RESPONSE")]["count"].sum()
+            ) * 100
+
+            accuracy_total = (
+                df_grouped[df_grouped["score"] == True]["count"].sum()
+                / df_grouped["count"].sum()
+            ) * 100
+
+            st.markdown(
+                "#### Accuracy Results\n\n"
+                f"| Response Type     | Accuracy                 |\n"
+                f"|-------------------|--------------------------|\n"
+                f"| Agent Response    | {accuracy_agent:.2f}%    |\n"
+                f"| LLM Response      | {accuracy_llm:.2f}%      |\n"
+                f"| **Total**         | **{accuracy_total:.2f}%**|\n"
+            )
+
+        with col2:  # Data
+            # Create the grouped bar chart
+            fig = px.bar(
+                df_grouped,
+                x="responder",
+                y="count",
+                color="score",
+                title="Comparison of AGENT RESPONSE vs LLM RESPONSE based on Score",
+                labels={
+                    "count": "Count of Responses",
+                    "responder": "Responder",
+                    "score": "Score",
+                },
+                barmode="group",
+                color_discrete_map={True: "lightgreen", False: "orange"},
+                text_auto=True,
+            )
+
+            fig.update_layout(
+                xaxis_title="Responder",
+                yaxis_title="Count",
+                legend_title="Score",
+                bargap=0.15,  # Gap between bars of adjacent location coordinates.
+            )
+            st.plotly_chart(fig, theme="streamlit", use_container_width=True)
