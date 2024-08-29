@@ -10,7 +10,15 @@ from dotenv import load_dotenv
 from yaml.loader import SafeLoader
 from helpers.helper import FinQA
 
-# Site Header
+# %% App Config
+st.set_page_config(
+    page_title="Conv Fin QA - tomoro.ai",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="auto",
+)
+
+# %% Site Header
 st.markdown(
     """
 # Financial Question Answering with Large Language Models 
