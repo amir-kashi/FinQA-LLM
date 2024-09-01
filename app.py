@@ -202,14 +202,19 @@ if st.session_state["authentication_status"]:
             )
 
             # Accuracy results
+            total_agent = df_grouped[df_grouped["responder"] == "AGENT RESPONSE"][
+                "count"
+            ].sum()
+            total_llm = df_grouped[df_grouped["responder"] == "LLM RESPONSE"][
+                "count"
+            ].sum()
+            total = total_agent + total_llm
             accuracy_agent = (
                 df_grouped[
                     (df_grouped["responder"] == "AGENT RESPONSE")
                     & (df_grouped["score"] == True)
                 ]["count"].sum()
-                / df_grouped[(df_grouped["responder"] == "AGENT RESPONSE")][
-                    "count"
-                ].sum()
+                / total_agent
             ) * 100
 
             accuracy_llm = (
@@ -217,7 +222,7 @@ if st.session_state["authentication_status"]:
                     (df_grouped["responder"] == "LLM RESPONSE")
                     & (df_grouped["score"] == True)
                 ]["count"].sum()
-                / df_grouped[(df_grouped["responder"] == "LLM RESPONSE")]["count"].sum()
+                / total_llm
             ) * 100
 
             accuracy_total = (
@@ -227,11 +232,11 @@ if st.session_state["authentication_status"]:
 
             st.markdown(
                 "#### Accuracy Results\n\n"
-                f"| Response Type     | Accuracy                 |\n"
-                f"|-------------------|--------------------------|\n"
-                f"| Agent Response    | {accuracy_agent:.2f}%    |\n"
-                f"| LLM Response      | {accuracy_llm:.2f}%      |\n"
-                f"| **Total**         | **{accuracy_total:.2f}%**|\n"
+                f"| Response Type     | No. of Cases  | Accuracy                 |\n"
+                f"|-------------------|---------------|--------------------------|\n"
+                f"| Agent Response    | {total_agent} | {accuracy_agent:.2f}%    |\n"
+                f"| LLM Response      | {total_llm}   | {accuracy_llm:.2f}%      |\n"
+                f"| **Total**         | **{total}**   | **{accuracy_total:.2f}%**|\n"
             )
 
         with col2:  # Data
